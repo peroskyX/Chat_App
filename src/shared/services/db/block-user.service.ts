@@ -1,55 +1,54 @@
 import mongoose from 'mongoose';
-import { PushOperator } from 'mongodb';
 import { UserModel } from '@user/models/user.schema';
+import { IUserDocument } from '@user/interfaces/user.interface';
+import { UpdateQuery } from 'mongoose';
 
 class BlockUserService {
   public async blockUser(userId: string, followerId: string): Promise<void> {
-    UserModel.bulkWrite([
+    const userObjId = new mongoose.Types.ObjectId(userId);
+    const followerObjId = new mongoose.Types.ObjectId(followerId);
+
+    await UserModel.bulkWrite([
       {
         updateOne: {
-          filter: { _id: userId, blocked: { $ne: new mongoose.Types.ObjectId(followerId) } },
+          filter: { _id: userObjId, blocked: { $ne: followerObjId } },
           update: {
-            $push: {
-              blocked: new mongoose.Types.ObjectId(followerId)
-            } as PushOperator<Document>
+            $push: { blocked: followerObjId } as UpdateQuery<IUserDocument>
           }
         }
       },
       {
         updateOne: {
-          filter: { _id: followerId, blockedBy: { $ne: new mongoose.Types.ObjectId(userId) } },
+          filter: { _id: followerObjId, blockedBy: { $ne: userObjId } },
           update: {
-            $push: {
-              blockedBy: new mongoose.Types.ObjectId(userId)
-            } as PushOperator<Document>
+            $push: { blockedBy: userObjId } as UpdateQuery<IUserDocument>
           }
         }
-      },
+      }
     ]);
   }
 
   public async unblockUser(userId: string, followerId: string): Promise<void> {
-    UserModel.bulkWrite([
+    const userObjId = new mongoose.Types.ObjectId(userId);
+    const followerObjId = new mongoose.Types.ObjectId(followerId);
+
+    await UserModel.bulkWrite([
       {
         updateOne: {
-          filter: { _id: userId },
+          filter: { _id: userObjId },
           update: {
-            $pull: {
-              blocked: new mongoose.Types.ObjectId(followerId)
-            } as PushOperator<Document>
+            $pull: { blocked: followerObjId } as UpdateQuery<IUserDocument>
           }
         }
       },
       {
         updateOne: {
-          filter: { _id: followerId },
+          filter: { _id: followerObjId },
           update: {
-            $pull: {
-              blockedBy: new mongoose.Types.ObjectId(userId)
-            } as PushOperator<Document>
+            $pull: { blockedBy: userObjId } as UpdateQuery<IUserDocument>
           }
         }
-      },
+      }
     ]);
   }
 }
